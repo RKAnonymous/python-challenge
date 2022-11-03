@@ -5,6 +5,7 @@ import re
 
 import requests
 import aiohttp
+import aiofiles
 
 from bs4 import BeautifulSoup
 from random import randint
@@ -25,6 +26,7 @@ headers = {
 }
 
 companies_data = []
+
 
 async def decode_email(e):
     de = ""
@@ -50,6 +52,19 @@ async def normalize_data(data, emails, phones):
             data[f'phone_{tick+1}'] = ''.join(phone)
             tick += 1
     return data
+
+
+async def csv_writer(data: dict):
+    cols = data.keys()
+    async with aiofiles.open('result.csv', mode='a') as f_out:
+        await f_out.write(','.join(cols) + '\n')
+
+        line = []
+        for col in cols:
+            line.append(str(data[col]) if col in data else '')
+
+        line = ','.join(line) + '\n'
+        await f_out.write(line)
 
 
 async def load_data(session, url, name):
@@ -86,8 +101,10 @@ async def load_data(session, url, name):
                 'site': site
             }
             result = await normalize_data(data, emails_company, phones_company)
-            print(result)
-            companies_data.append(result)
+#             print(result)
+#             companies_data.append(result)
+            await csv_writer(result)
+    
 
 async def main():
     flag = True
@@ -121,10 +138,11 @@ async def main():
                 await asyncio.gather(*tasks)
                 await asyncio.sleep(1)
 
+
 asyncio.run(main())
 
-with open(f'dou.csv', 'w') as f:
-        writer = csv.writer(f)
-        for company in companies_data:
-            writer.writerow(company.keys())
-            writer.writerow(company.values())
+# with open(f'dou.csv', 'w') as f:
+#         writer = csv.writer(f)
+#         for company in companies_data:
+#             writer.writerow(company.keys())
+#             writer.writerow(company.values())
